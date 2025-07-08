@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spooky Clock</title>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Creepster', cursive;
+      background: url('spooky.jpg') no-repeat center center fixed;
+      background-size: cover;
+      background-color: #000;
+      color: #d8cccc;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 3;
+    }
+
+    .logo {
+      height: 70px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .top-buttons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn, #formatBtn {
+      font-size: 1rem;
+      padding: 8px 16px;
+      border-radius: 6px;
+      background: rgba(200, 200, 200, 0.3);
+      color: #eee;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn:hover, #formatBtn:hover {
+      background: rgba(180, 180, 180, 0.5);
+    }
+
+    #volumeSlider {
+      width: 100px;
+      cursor: pointer;
+      accent-color: red;
+    }
+
+    .clock {
+      font-size: 6rem;
+      text-shadow: 0 0 10px #888;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .clock .session {
+      font-size: 2rem;
+      vertical-align: super;
+      color: #aaccdd;
+      text-shadow: 0 0 6px #556677;
+    }
+
+    .date {
+      font-size: 2rem;
+      color: #ddd;
+      text-shadow: 0 0 10px #000;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .fog {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('fog.png') repeat center center;
+      background-size: cover;
+      opacity: 0.6;
+      animation: drift 60s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+      filter: blur(8px);
+    }
+
+    @keyframes drift {
+      from { background-position: 0 0; }
+      to { background-position: 1000px 0; }
+    }
+
+    .content {
+      z-index: 2;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* Vibrant spooky mode */
+    body.vibrant-theme {
+      color: #ff4d4d;
+    }
+
+    body.vibrant-theme .clock {
+      color: #ff4d4d;
+      text-shadow: 0 0 20px red, 0 0 40px crimson;
+    }
+
+    body.vibrant-theme .clock .session {
+      color: #aaffff;
+      text-shadow: 0 0 10px #00ffee;
+    }
+
+    body.vibrant-theme .btn,
+    body.vibrant-theme #formatBtn {
+      background: rgba(255, 0, 0, 0.7);
+      color: #fff;
+      border: none;
+    }
+
+    body.vibrant-theme .btn:hover,
+    body.vibrant-theme #formatBtn:hover {
+      background: rgba(255, 50, 50, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="fog"></div>
+
+  <div class="header">
+    <img src="ad-logo.png" alt="Logo" class="logo" />
+    <div class="top-buttons">
+      <input type="range" id="volumeSlider" min="0" max="100" value="100" title="Volume" />
+      <button class="btn small" onclick="toggleTheme()" id="themeBtn">🩸</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="date" id="date">Loading date...</div>
+    <button class="btn" onclick="toggleFormat()" id="formatBtn">Switch to 12-hour</button>
+  </div>
+
+  <!-- Ticking sound -->
+  <audio id="tick-sound" src="tick.mp3" preload="auto"></audio>
+
+  <script>
+    let is24Hour = true;
+    let isAudioEnabled = false;
+
+    const tickSound = document.getElementById('tick-sound');
+    const volumeSlider = document.getElementById('volumeSlider');
+
+    volumeSlider.addEventListener('input', () => {
+      tickSound.volume = volumeSlider.value / 100;
+    });
+
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      let session = '';
+      let displayHours = hours;
+
+      if (!is24Hour) {
+        session = hours >= 12 ? 'PM' : 'AM';
+        displayHours = hours % 12 || 12;
+      }
+
+      displayHours = displayHours < 10 ? '0' + displayHours : displayHours;
+      const mins = minutes < 10 ? '0' + minutes : minutes;
+      const secs = seconds < 10 ? '0' + seconds : seconds;
+
+      const timeString = `${displayHours}:${mins}:${secs}`;
+      document.getElementById('clock').innerHTML = is24Hour
+        ? timeString
+        : `${timeString}<span class="session">${session}</span>`;
+
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('date').textContent = now.toLocaleDateString('en-US', options);
+
+      if (isAudioEnabled && tickSound.readyState >= 2) {
+        tickSound.currentTime = 0;
+        tickSound.play().catch(() => {});
+      }
+    }
+
+    function toggleFormat() {
+      is24Hour = !is24Hour;
+      document.getElementById('formatBtn').textContent = is24Hour
+        ? 'Switch to 12-hour'
+        : 'Switch to 24-hour';
+      updateClock();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle('vibrant-theme');
+      const themeBtn = document.getElementById('themeBtn');
+      themeBtn.textContent = document.body.classList.contains('vibrant-theme') ? '🌑' : '🩸';
+    }
+
+    function unlockAudio() {
+      isAudioEnabled = true;
+      updateClock();
+      document.removeEventListener('click', unlockAudio);
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+    document.addEventListener('click', unlockAudio);
+  </script>
+</body>
+</html>
